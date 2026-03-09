@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import os
 import threading
 import traceback
 import logging
@@ -20,6 +21,15 @@ from coze_coding_utils.log.write_log import setup_logging, request_context
 from coze_coding_utils.log.config import LOG_LEVEL
 from coze_coding_utils.error.classifier import ErrorClassifier, classify_error
 from coze_coding_utils.helper.stream_runner import AgentStreamRunner, WorkflowStreamRunner,agent_stream_handler,workflow_stream_handler, RunOpt
+
+# 支持通过环境变量自定义日志路径（用于本地开发）
+LOCAL_LOG_FILE = os.getenv('LOG_FILE') or os.getenv('LOCAL_LOG_FILE')
+if LOCAL_LOG_FILE:
+    LOG_FILE = LOCAL_LOG_FILE
+    # 确保日志目录存在
+    log_dir = os.path.dirname(LOG_FILE)
+    if log_dir and not os.path.exists(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
 
 setup_logging(
     log_file=LOG_FILE,
