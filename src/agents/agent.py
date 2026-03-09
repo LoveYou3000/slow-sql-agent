@@ -22,7 +22,7 @@ class AgentState(MessagesState):
     messages: Annotated[list[AnyMessage], _windowed_messages]
 
 def build_agent(ctx=None):
-    workspace_path = os.getenv("COZE_WORKSPACE_PATH", "/workspace/projects")
+    workspace_path = os.getenv("COZE_WORKSPACE_PATH", ".")
     config_path = os.path.join(workspace_path, LLM_CONFIG)
 
     with open(config_path, 'r', encoding='utf-8') as f:
