@@ -14,10 +14,6 @@ __pycache__/
 .env
 .idea
 
-# 日志文件
-logs/
-*.log
-
 # 视频文件
 *.mp4
 *.avi
