@@ -57,9 +57,10 @@ CREATE TABLE IF NOT EXISTS checkpoint_writes (
     -- 任务ID
     task_id VARCHAR(255),
 
-    -- 写入操作类型（例如：tool_call, error, result等）
+    -- 写入操作信息
     idx INTEGER NOT NULL,
     channel VARCHAR(255) NOT NULL,
+    type VARCHAR(255) NOT NULL,  -- ⚠️ 重要：LangGraph 需要 type 字段
 
     -- 写入的数据（JSONB格式）
     value JSONB NOT NULL,
@@ -80,6 +81,9 @@ CREATE INDEX IF NOT EXISTS idx_checkpoint_writes_thread_id
 
 CREATE INDEX IF NOT EXISTS idx_checkpoint_writes_task_id
     ON checkpoint_writes(task_id);
+
+CREATE INDEX IF NOT EXISTS idx_checkpoint_writes_type
+    ON checkpoint_writes(type);
 
 -- ============================================================================
 -- 注释说明
@@ -102,6 +106,8 @@ COMMENT ON COLUMN checkpoints.metadata IS '检查点元数据（JSONB格式）�
 COMMENT ON COLUMN checkpoint_writes.task_id IS '任务ID，标识一个具体的工具调用或操作';
 
 COMMENT ON COLUMN checkpoint_writes.channel IS '通道名称，标识写入的数据类型';
+
+COMMENT ON COLUMN checkpoint_writes.type IS '写入操作类型（如：tool_call, error, result 等）';
 
 COMMENT ON COLUMN checkpoint_writes.value IS '写入的数据值（JSONB格式）';
 

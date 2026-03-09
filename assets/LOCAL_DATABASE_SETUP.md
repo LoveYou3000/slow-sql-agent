@@ -348,6 +348,57 @@ sslmode=prefer did not work
 PGDATABASE_URL=postgresql://agent_user:password@localhost:5432/agent_db?sslmode=disable
 ```
 
+### 问题 5: type 字段不存在
+
+**错误信息**：
+```
+psycopg.errors.UndefinedColumn: column cw.type does not exist
+LINE 20: ...array[cw.task_id::text::bytea, cw.channel::bytea, cw.type::b...
+                                                              ^
+```
+
+**原因**：旧版本的表结构缺少 `type` 字段，LangGraph 需要这个字段。
+
+**解决方案 - 方式 1（推荐）: 使用迁移脚本**
+```bash
+# 运行迁移脚本
+python scripts/migrate_add_type_column.py
+```
+
+**解决方案 - 方式 2: 手动执行 SQL**
+```sql
+-- 连接到数据库
+psql -U postgres -d agent_db
+
+-- 添加 type 字段
+ALTER TABLE memory.checkpoint_writes
+ADD COLUMN IF NOT EXISTS type VARCHAR(255) NOT NULL DEFAULT '';
+
+-- 更新现有数据
+UPDATE memory.checkpoint_writes
+SET type = 'unknown'
+WHERE type = '';
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_checkpoint_writes_type
+ON memory.checkpoint_writes(type);
+```
+
+**解决方案 - 方式 3: 重建表（会清空数据）**
+```bash
+# ⚠️ 警告：此操作会删除所有对话历史
+
+# 连接到数据库
+psql -U postgres -d agent_db
+
+# 删除旧表
+DROP TABLE IF EXISTS memory.checkpoint_writes CASCADE;
+DROP TABLE IF EXISTS memory.checkpoints CASCADE;
+
+# 重新导入表结构
+\i assets/langgraph_checkpoint_schema.sql
+```
+
 ---
 
 ## 📚 相关文件说明
