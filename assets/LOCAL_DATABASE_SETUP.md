@@ -348,21 +348,23 @@ sslmode=prefer did not work
 PGDATABASE_URL=postgresql://agent_user:password@localhost:5432/agent_db?sslmode=disable
 ```
 
-### 问题 5: type 字段不存在
+### 问题 5: type 或 blob 字段缺失
 
 **错误信息**：
 ```
 psycopg.errors.UndefinedColumn: column cw.type does not exist
-LINE 20: ...array[cw.task_id::text::bytea, cw.channel::bytea, cw.type::b...
-                                                              ^
+```
+或
+```
+psycopg.errors.UndefinedColumn: column cw.blob does not exist
 ```
 
-**原因**：旧版本的表结构缺少 `type` 字段，LangGraph 需要这个字段。
+**原因**：旧版本的表结构缺少 LangGraph 需要的字段。
 
-**解决方案 - 方式 1（推荐）: 使用迁移脚本**
+**解决方案 - 方式 1（推荐）: 使用完整迁移脚本**
 ```bash
-# 运行迁移脚本
-python scripts/migrate_add_type_column.py
+# 运行完整迁移脚本（推荐）
+python scripts/migrate_complete_schema.py
 ```
 
 **解决方案 - 方式 2: 手动执行 SQL**
@@ -372,16 +374,22 @@ psql -U postgres -d agent_db
 
 -- 添加 type 字段
 ALTER TABLE memory.checkpoint_writes
-ADD COLUMN IF NOT EXISTS type VARCHAR(255) NOT NULL DEFAULT '';
+ADD COLUMN IF NOT EXISTS type TEXT DEFAULT '';
 
--- 更新现有数据
-UPDATE memory.checkpoint_writes
-SET type = 'unknown'
-WHERE type = '';
+-- 添加 blob 字段
+ALTER TABLE memory.checkpoint_writes
+ADD COLUMN IF NOT EXISTS blob BYTEA NOT NULL DEFAULT '';
 
--- 创建索引
-CREATE INDEX IF NOT EXISTS idx_checkpoint_writes_type
-ON memory.checkpoint_writes(type);
+-- 创建 checkpoint_blobs 表
+CREATE TABLE IF NOT EXISTS memory.checkpoint_blobs (
+    thread_id TEXT NOT NULL,
+    checkpoint_ns TEXT NOT NULL DEFAULT '',
+    channel TEXT NOT NULL,
+    version TEXT NOT NULL,
+    type TEXT NOT NULL,
+    blob BYTEA,
+    PRIMARY KEY (thread_id, checkpoint_ns, channel, version)
+);
 ```
 
 **解决方案 - 方式 3: 重建表（会清空数据）**
@@ -393,11 +401,14 @@ psql -U postgres -d agent_db
 
 # 删除旧表
 DROP TABLE IF EXISTS memory.checkpoint_writes CASCADE;
+DROP TABLE IF EXISTS memory.checkpoint_blobs CASCADE;
 DROP TABLE IF EXISTS memory.checkpoints CASCADE;
 
 # 重新导入表结构
 \i assets/langgraph_checkpoint_schema.sql
 ```
+
+**详细指南**: 参见 [docs/QUICK_FIX_TYPE_COLUMN.md](../docs/QUICK_FIX_TYPE_COLUMN.md)
 
 ---
 
