@@ -28,8 +28,19 @@ def build_agent(ctx=None):
     with open(config_path, 'r', encoding='utf-8') as f:
         cfg = json.load(f)
 
-    api_key = os.getenv("COZE_WORKLOAD_IDENTITY_API_KEY")
-    base_url = os.getenv("COZE_INTEGRATION_MODEL_BASE_URL")
+    # 优先从配置文件读取，如果配置文件中为空，则从环境变量读取
+    api_key = cfg.get("api_key") or os.getenv("COZE_WORKLOAD_IDENTITY_API_KEY")
+    base_url = cfg.get("base_url") or os.getenv("COZE_INTEGRATION_MODEL_BASE_URL")
+
+    # 如果配置文件中没有 api_key 或 base_url，给出警告
+    if not cfg.get("api_key"):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("config/agent_llm_config.json 中未配置 api_key，将从环境变量读取")
+    if not cfg.get("base_url"):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning("config/agent_llm_config.json 中未配置 base_url，将从环境变量读取")
 
     llm = ChatOpenAI(
         model=cfg['config'].get("model"),

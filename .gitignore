@@ -14,6 +14,15 @@ __pycache__/
 .env
 .idea
 
+# 日志文件
+logs/
+*.log
+
+# 配置文件（包含敏感信息）
+config/agent_llm_config.json
+
+# 视频文件
+
 # 视频文件
 *.mp4
 *.avi
